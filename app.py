@@ -9,7 +9,29 @@ import json
 # Konfiguracja strony
 st.set_page_config(page_title="HR AI Recruiter Assistant", layout="wide")
 
-# Funkcje pomocnicze do ekstrakcji tekstu
+# --- DEFINICJA SZABLONÓW (NOWOŚĆ) ---
+TEMPLATES = {
+    "Własny (Wyczyść pola)": {
+        "title": "",
+        "must_haves": "",
+        "nice_to_haves": "",
+        "description": ""
+    },
+    "Junior DevOps Engineer": {
+        "title": "Junior DevOps Engineer",
+        "must_haves": "- Linux (Bash/Shell) - dobra znajomość\n- Docker - podstawy konteneryzacji\n- GIT - system kontroli wersji\n- Podstawy sieci (DNS, HTTP, TCP/IP)",
+        "nice_to_haves": "- Python (skryptowanie)\n- Jenkins / GitLab CI\n- AWS / Azure (podstawy chmury)\n- SQL",
+        "description": "Poszukujemy osoby na stanowisko Junior DevOps, która pomoże w utrzymaniu i automatyzacji naszej infrastruktury. Wymagana chęć do nauki i solidne podstawy systemów Linux."
+    },
+    "IT Support Specialist": {
+        "title": "IT Support Specialist (L1/L2)",
+        "must_haves": "- Windows 10/11 & Office 365 (Admin)\n- Rozwiązywanie problemów sprzętowych (Hardware)\n- Active Directory (zakładanie kont, uprawnienia)\n- Język angielski B2",
+        "nice_to_haves": "- MacOS support\n- Jira Service Desk\n- Podstawy PowerShell\n- Znajomość ITIL",
+        "description": "Osoba odpowiedzialna za wsparcie techniczne pracowników biurowych (onsite oraz zdalnie), konfigurację stacji roboczych i rozwiązywanie bieżących awarii."
+    }
+}
+
+# --- FUNKCJE POMOCNICZE ---
 def extract_text_from_pdf(file):
     """
     Ekstrahuje tekst z pliku PDF.
@@ -100,20 +122,45 @@ with st.sidebar:
 st.title("🤖 HR AI Recruiter Assistant")
 st.markdown("---")
 
+# --- OBSŁUGA STANU SESJI (Session State) ---
+# Inicjalizujemy zmienne w pamięci przeglądarki, aby można je było nadpisywać szablonami
+if 'job_title' not in st.session_state: st.session_state.job_title = ""
+if 'must_haves' not in st.session_state: st.session_state.must_haves = ""
+if 'nice_to_haves' not in st.session_state: st.session_state.nice_to_haves = ""
+if 'job_description' not in st.session_state: st.session_state.job_description = ""
+
+def update_fields():
+    """Funkcja aktualizująca pola na podstawie wybranego szablonu"""
+    selection = st.session_state.template_selector
+    st.session_state.job_title = TEMPLATES[selection]["title"]
+    st.session_state.must_haves = TEMPLATES[selection]["must_haves"]
+    st.session_state.nice_to_haves = TEMPLATES[selection]["nice_to_haves"]
+    st.session_state.job_description = TEMPLATES[selection]["description"]
+
 # 2. Definiowanie Profilu Kandydata
 st.header("1. Zdefiniuj Profil Kandydata")
+
+# Selectbox do wyboru szablonu
+st.selectbox(
+    "📂 Wybierz szablon stanowiska (opcjonalnie):",
+    options=list(TEMPLATES.keys()),
+    key="template_selector",
+    on_change=update_fields  # To uruchamia funkcję update_fields przy zmianie
+)
+
 col1, col2 = st.columns(2)
 
 with col1:
-    job_title = st.text_input("Nazwa stanowiska", placeholder="np. Senior Python Developer")
-    must_haves = st.text_area("Kluczowe wymagania (Must-haves)", placeholder="- Python\n- Django\n- SQL")
+    # Używamy key="job_title", co wiąże pole z st.session_state.job_title
+    job_title = st.text_input("Nazwa stanowiska", key="job_title", placeholder="np. Senior Python Developer")
+    must_haves = st.text_area("Kluczowe wymagania (Must-haves)", key="must_haves", placeholder="- Python\n- Django\n- SQL", height=150)
 
 with col2:
-    nice_to_haves = st.text_area("Mile widziane (Nice-to-haves)", placeholder="- AWS\n- Docker\n- React")
-    job_description = st.text_area("Opis stanowiska", placeholder="Szczegóły dotyczące roli, obowiązków i firmy...")
+    nice_to_haves = st.text_area("Mile widziane (Nice-to-haves)", key="nice_to_haves", placeholder="- AWS\n- Docker\n- React", height=150)
+    job_description = st.text_area("Opis stanowiska", key="job_description", placeholder="Szczegóły dotyczące roli, obowiązków i firmy...", height=150)
 
 if not job_title or not must_haves:
-    st.info("ℹ️ Uzupełnij nazwę stanowiska i kluczowe wymagani, aby przejść dalej.")
+    st.info("ℹ️ Uzupełnij nazwę stanowiska i kluczowe wymagani (lub wybierz szablon), aby przejść dalej.")
     st.stop()
 
 job_profile = {
